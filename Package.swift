@@ -38,13 +38,16 @@ let package = Package(
         
         .target(
             name: "CDawnNative",
-            dependencies: ["DawnFramework","CWebGPU"]
+            dependencies: ["DawnFramework","CWebGPU"],
+			cxxSettings: [
+				.headerSearchPath("ExtraHeaders")
+				]
 		),
         .target(
             name: "DawnNative",
             dependencies: ["DawnFramework","WebGPU", "CDawnNative"],
-			resources: [
-				.copy("PrivacyInfo.xcprivacy")
+			cxxSettings: [
+				.headerSearchPath("webgpu_dawn.xcframework/macos-arm64/webgpu_dawn.framework/Headers")
 			]
 		),
         

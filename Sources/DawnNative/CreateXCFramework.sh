@@ -14,14 +14,19 @@ OUTPUT_PATH="./${OUTPUT_FILENAME}"
 MACOS_LIBRARY_PATH="${RELEASE_ROOT}/lib/libwebgpu_dawn.dylib"
 MACOS_HEADER_PATH="${RELEASE_ROOT}/include"
 DAWN_JSON_PATH="${RELEASE_ROOT}/dawn.json"
+MACOS_FRAMEWORK_PATH="${RELEASE_ROOT}/webgpu_dawn.framework"
 
 # xcodebuild fails if any contents inside already exist, so clean it out
 # ||true will continue (not exit 1) if the path doesnt exist
 rm -r ${OUTPUT_PATH} || true
 
+#xcodebuild -create-xcframework \
+#	-library ${MACOS_LIBRARY_PATH} \
+#	-headers ${MACOS_HEADER_PATH}	\
+#	-output ${OUTPUT_PATH}
+
 xcodebuild -create-xcframework \
-	-library ${MACOS_LIBRARY_PATH} \
-	-headers ${MACOS_HEADER_PATH}	\
+	-framework ${MACOS_FRAMEWORK_PATH} \
 	-output ${OUTPUT_PATH}
 
 # we cannot include arbritary files into an xcframework via normal means, but we can sneak them into the output folder
