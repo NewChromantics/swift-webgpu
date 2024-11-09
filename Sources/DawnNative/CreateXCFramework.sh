@@ -15,10 +15,6 @@ MACOS_LIBRARY_PATH="${RELEASE_ROOT}/lib/libwebgpu_dawn.dylib"
 MACOS_HEADER_PATH="${RELEASE_ROOT}/include"
 DAWN_JSON_PATH="${RELEASE_ROOT}/dawn.json"
 
-# apple require dawn sdk to provide a privacy manifest to submit to the store, as abseil is on their
-# bad-privacy list
-PRIVACY_INFO_PATH="${RELEASE_ROOT}/PrivacyInfo.xcprivacy"
-
 # xcodebuild fails if any contents inside already exist, so clean it out
 # ||true will continue (not exit 1) if the path doesnt exist
 rm -r ${OUTPUT_PATH} || true
@@ -30,4 +26,3 @@ xcodebuild -create-xcframework \
 
 # we cannot include arbritary files into an xcframework via normal means, but we can sneak them into the output folder
 cp ${DAWN_JSON_PATH} ${OUTPUT_PATH}
-cp ${PRIVACY_INFO_PATH} ${OUTPUT_PATH}

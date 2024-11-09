@@ -42,7 +42,10 @@ let package = Package(
 		),
         .target(
             name: "DawnNative",
-            dependencies: ["DawnFramework","WebGPU", "CDawnNative"]
+            dependencies: ["DawnFramework","WebGPU", "CDawnNative"],
+			resources: [
+				.copy("PrivacyInfo.xcprivacy")
+			]
 		),
         
         .executableTarget(
