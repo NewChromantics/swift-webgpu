@@ -47,6 +47,7 @@ let package = Package(
             name: "DawnNative",
             dependencies: ["DawnFramework","WebGPU", "CDawnNative"],
 			cxxSettings: [
+				.headerSearchPath("webgpu_dawn.xcframework/macos-arm64_x86_64/webgpu_dawn.framework/Headers"),
 				.headerSearchPath("webgpu_dawn.xcframework/macos-arm64/webgpu_dawn.framework/Headers")
 			]
 		),
