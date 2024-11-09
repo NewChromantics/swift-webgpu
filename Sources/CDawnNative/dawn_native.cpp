@@ -1,3 +1,4 @@
+/*
 extern "C" {
 #include "dawn_native.h"
 }
@@ -56,3 +57,4 @@ void dawnNativeAdapterRelease(DawnNativeAdapter cAdapter) {
     auto adapter = reinterpret_cast<dawn::native::Adapter*>(cAdapter);
     delete adapter;
 }
+*/
