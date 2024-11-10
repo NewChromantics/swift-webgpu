@@ -43,7 +43,7 @@ public class WebGpuRenderer
 	public var device : Device?
 	var windowTextureFormat = TextureFormat.bgra8Unorm
 
-	var initTask : Task<Void,any Error>!
+	var initTask : Task<Device,any Error>!
 	var error : String?
 	
 	public init()
@@ -52,14 +52,13 @@ public class WebGpuRenderer
 		
 		initTask = Task
 		{
-			try await Init()
+			return try await Init()
 		}
 	}
 	
 	public func waitForDevice() async throws -> Device
 	{
-		try await Init()
-		return device!
+		return try await initTask.result.get()
 	}
 	
 	func OnError(_ error:String)
@@ -73,13 +72,15 @@ public class WebGpuRenderer
 		OnError("\(errorType)/\(errorMessage)")
 	}
 	
-	func Init() async throws
+	func Init() async throws -> Device
 	{
 		let adapter = try await webgpu.requestAdapter()
 		print("Using adapter: \(adapter.info.device)")
 		
 		self.device = try await adapter.requestDevice()
 		device!.setUncapturedErrorCallback(OnDeviceUncapturedError)
+		
+		return self.device!
 	}
 	
 	
