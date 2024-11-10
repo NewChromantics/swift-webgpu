@@ -255,6 +255,13 @@ class VSyncer
 		//	macos 14.0 has CADisplayLink but no way to use it
 #if os(macOS)
 		let timer = Timer.scheduledTimer(timeInterval: 1.0/60.0, target: self, selector: #selector(OnVsync), userInfo: nil, repeats: true)
+		
+		//	despite how this looks, this runs the timer on a background thread.
+		//	this means when the main thread is blocked (eg, dragging a slider, or scrolling a view)
+		//	the timer is still fired, and thus (for example) a metal view still gets rendered [gr: although... is it on another thread?]
+		//	https://stackoverflow.com/a/57455910/355753
+		RunLoop.main.add(timer, forMode: RunLoop.Mode.common)
+
 #else
 		let displayLink = CADisplayLink(target: self, selector: #selector(OnVsync))
 		displayLink.add(to: .current, forMode: .default)
