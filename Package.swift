@@ -44,6 +44,14 @@ let package = Package(
         .target(
             name: "DawnNative",
             dependencies: ["DawnFramework","WebGPU", "CDawnNative"],
+			//	get rid of warnings for unexpected files
+			exclude: [
+				"BuildDawn.sh",
+				"CreateXCFramework.sh",
+				"dawn.json",
+				"PrivacyInfo.xcprivacy",
+				"webgpu_dawn.xcframework"
+			],
 			cxxSettings: [
 				.headerSearchPath("webgpu_dawn.xcframework/macos-arm64_x86_64/webgpu_dawn.framework/Headers"),
 				.headerSearchPath("webgpu_dawn.xcframework/macos-arm64/webgpu_dawn.framework/Headers")
