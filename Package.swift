@@ -21,14 +21,12 @@ let package = Package(
     targets: [
         .target(
             name: "CWebGPU",
-			//,
-            //pkgConfig: "webgpu"
 			dependencies: ["DawnFramework"],
 			//	gr: this compiles ALL the headers recursively, including cpp ones - they need to be C
 			//		and we can't filter, so make sure only C headers are here (webgpu/webgpu.h) to produce
 			//		C->Swift symbols
 			//		The path also needs to be inside $target_name/ (not root of package)
-			publicHeadersPath:"include/webgpu"	//	nil == include/
+			publicHeadersPath:"include"	//	nil == include/
         ),
         .target(
             name: "WebGPU",
