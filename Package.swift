@@ -4,7 +4,10 @@ import PackageDescription
 
 let package = Package(
     name: "swift-webgpu",
-    platforms: [.macOS("10.15")],
+    platforms: [
+		.iOS(.v13),
+		.macOS("10.15")
+	],
     products: [
         .library(
 			name: "WebGPU",
@@ -36,10 +39,7 @@ let package = Package(
         
         .target(
             name: "CDawnNative",
-            dependencies: ["DawnFramework","CWebGPU"],
-			cxxSettings: [
-				.headerSearchPath("ExtraHeaders")
-				]
+            dependencies: ["DawnFramework","CWebGPU"]
 		),
         .target(
             name: "DawnNative",
@@ -53,6 +53,7 @@ let package = Package(
 				"webgpu_dawn.xcframework"
 			],
 			cxxSettings: [
+				.headerSearchPath("webgpu_dawn.xcframework/ios-arm64/webgpu_dawn.framework/Headers"),
 				.headerSearchPath("webgpu_dawn.xcframework/macos-arm64_x86_64/webgpu_dawn.framework/Headers"),
 				.headerSearchPath("webgpu_dawn.xcframework/macos-arm64/webgpu_dawn.framework/Headers")
 			]

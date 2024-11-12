@@ -11,17 +11,25 @@ RELEASE_ROOT="./"
 OUTPUT_FILENAME="webgpu_dawn.xcframework"
 OUTPUT_PATH="./${OUTPUT_FILENAME}"
 
-MACOS_LIBRARY_PATH="${RELEASE_ROOT}/lib/libwebgpu_dawn.dylib"
-MACOS_HEADER_PATH="${RELEASE_ROOT}/include"
+# old dylib->framework approach
+#MACOS_LIBRARY_PATH="${RELEASE_ROOT}/lib/libwebgpu_dawn.dylib"
+#MACOS_HEADER_PATH="${RELEASE_ROOT}/include"
+
+# extra resources we need
 DAWN_JSON_PATH="${RELEASE_ROOT}/dawn.json"
 PRIVACY_MANIFEST_PATH="${RELEASE_ROOT}/PrivacyInfo.xcprivacy"
-MACOS_FRAMEWORK_PATH="${RELEASE_ROOT}/webgpu_dawn.framework"
+
+MACOS_FRAMEWORK_PATH="${RELEASE_ROOT}/macos/webgpu_dawn.framework"
+IOS_FRAMEWORK_PATH="${RELEASE_ROOT}/ios/webgpu_dawn.framework"
 
 # xcodebuild fails if any contents inside already exist, so clean it out
 # ||true will continue (not exit 1) if the path doesnt exist
 rm -r ${OUTPUT_PATH} || true
 
 cp ${PRIVACY_MANIFEST_PATH} ${MACOS_FRAMEWORK_PATH}/Resources
+
+# ios frameworks dont have a /Resources folder - copy to root
+cp ${PRIVACY_MANIFEST_PATH} ${IOS_FRAMEWORK_PATH}
 
 
 #xcodebuild -create-xcframework \
@@ -31,6 +39,7 @@ cp ${PRIVACY_MANIFEST_PATH} ${MACOS_FRAMEWORK_PATH}/Resources
 
 xcodebuild -create-xcframework \
 	-framework ${MACOS_FRAMEWORK_PATH} \
+	-framework ${IOS_FRAMEWORK_PATH} \
 	-output ${OUTPUT_PATH}
 
 # we cannot include arbritary files into an xcframework via normal means, but we can sneak them into the output folder

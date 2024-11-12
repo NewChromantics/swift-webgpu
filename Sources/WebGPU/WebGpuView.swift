@@ -128,6 +128,10 @@ public class RenderView : UIView
 	var contentRenderer : ContentRenderer
 	var vsync : VSyncer? = nil
 	
+	
+	//	on macos this can be THE layer
+	var metalLayer : CAMetalLayer
+	
 #if os(macOS)
 	public override var isFlipped: Bool { return true	}	//	gr: this isn't doing anything when in use with webgpu... but true should match ios
 #endif
@@ -142,26 +146,29 @@ public class RenderView : UIView
 	{
 		return self.layer
 	}
-	
+	/*
 	var metalLayer : CAMetalLayer
 	{
 		return (self.viewLayer as! CAMetalLayer?)!
 	}
-	
+	*/
 	
 	init(contentRenderer:ContentRenderer)
 	{
 		self.contentRenderer = contentRenderer
-		
+		self.metalLayer = CAMetalLayer()
+
 		super.init(frame: .zero)
 		// Make this a layer-hosting view. First set the layer, then set wantsLayer to true.
 		
 #if os(macOS)
 		wantsLayer = true
 		//self.needsLayout = true
+		//	macos only
+		//self.layer = CAMetalLayer()
 #endif
-		self.layer = CAMetalLayer()
-		//viewLayer!.addSublayer(metalLayer)
+		//	if using sublayer
+		viewLayer!.addSublayer(metalLayer)
 		
 		vsync = VSyncer(Callback: Render)
 	}
@@ -203,7 +210,7 @@ public class RenderView : UIView
 */
 public struct WebGpuView : UIViewRepresentable
 {
-	typealias UIViewType = RenderView
+	public typealias UIViewType = RenderView
 	public typealias NSViewType = RenderView
 	
 	var contentRenderer : ContentRenderer
