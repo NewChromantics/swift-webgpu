@@ -128,9 +128,17 @@ public class RenderView : UIView
 	var contentRenderer : ContentRenderer
 	var vsync : VSyncer? = nil
 	
-	
-	//	on macos this can be THE layer
+
+	//	gr: currently on macos, as a sublayer, we dont see it rendered (probably need to do more setup)
+#if os(macOS)
 	var metalLayer : CAMetalLayer
+	{
+		return (self.viewLayer as! CAMetalLayer?)!
+	}
+#else
+	var metalLayer : CAMetalLayer
+#endif
+
 	
 #if os(macOS)
 	public override var isFlipped: Bool { return true	}	//	gr: this isn't doing anything when in use with webgpu... but true should match ios
@@ -147,16 +155,11 @@ public class RenderView : UIView
 		return self.layer
 	}
 	/*
-	var metalLayer : CAMetalLayer
-	{
-		return (self.viewLayer as! CAMetalLayer?)!
-	}
 	*/
 	
 	init(contentRenderer:ContentRenderer)
 	{
 		self.contentRenderer = contentRenderer
-		self.metalLayer = CAMetalLayer()
 
 		super.init(frame: .zero)
 		// Make this a layer-hosting view. First set the layer, then set wantsLayer to true.
@@ -165,11 +168,12 @@ public class RenderView : UIView
 		wantsLayer = true
 		//self.needsLayout = true
 		//	macos only
-		//self.layer = CAMetalLayer()
-#endif
+		self.layer = CAMetalLayer()
+#else
+		self.metalLayer = CAMetalLayer()
 		//	if using sublayer
 		viewLayer!.addSublayer(metalLayer)
-		
+#endif
 		vsync = VSyncer(Callback: Render)
 	}
 	
