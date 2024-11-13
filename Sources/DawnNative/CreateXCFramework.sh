@@ -1,6 +1,9 @@
 # exit when any command fails
 set -e
 
+# identity of team eg. "A11AA11AA1"
+SIGNING_IDENTITY=$1
+
 # path to the macos artifact from google's CI run
 # https://github.com/google/dawn/actions/workflows/ci.yml
 # expect RELEASE_ROOT/lib and /include dirs inside
@@ -31,6 +34,9 @@ cp ${PRIVACY_MANIFEST_PATH} ${MACOS_FRAMEWORK_PATH}/Resources
 # ios frameworks dont have a /Resources folder - copy to root
 cp ${PRIVACY_MANIFEST_PATH} ${IOS_FRAMEWORK_PATH}
 
+# check state of signing of frameworks
+codesign -dv ${MACOS_FRAMEWORK_PATH} || true
+codesign -dv ${IOS_FRAMEWORK_PATH} || true	#	will error as it's not signed
 
 #xcodebuild -create-xcframework \
 #	-library ${MACOS_LIBRARY_PATH} \
@@ -42,5 +48,13 @@ xcodebuild -create-xcframework \
 	-framework ${IOS_FRAMEWORK_PATH} \
 	-output ${OUTPUT_PATH}
 
+
+
 # we cannot include arbritary files into an xcframework via normal means, but we can sneak them into the output folder
 cp ${DAWN_JSON_PATH} ${OUTPUT_PATH}
+
+# need to sign the xcframework for use in the mac store
+#codesign -dv ${OUTPUT_PATH} #  will show is not signed
+# https://developer.apple.com/documentation/xcode/creating-a-multi-platform-binary-framework-bundle
+codesign --timestamp -s "$SIGNING_IDENTITY" ${OUTPUT_PATH}
+
