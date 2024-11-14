@@ -48,8 +48,6 @@ public class WebGpuRenderer
 	
 	public init()
 	{
-		//super.init()
-		
 		initTask = Task
 		{
 			return try await Init()
@@ -61,6 +59,7 @@ public class WebGpuRenderer
 		return try await initTask.result.get()
 	}
 	
+	//	todo: do something with this error!
 	func OnError(_ error:String)
 	{
 		print("CameraPreviewManager error; \(error)")
@@ -128,16 +127,7 @@ public class RenderView : UIView
 	var contentRenderer : ContentRenderer
 	var vsync : VSyncer? = nil
 	
-
-	//	gr: currently on macos, as a sublayer, we dont see it rendered (probably need to do more setup)
-#if os(macOS)
 	var metalLayer : CAMetalLayer
-	{
-		return (self.viewLayer as! CAMetalLayer?)!
-	}
-#else
-	var metalLayer : CAMetalLayer
-#endif
 
 	
 #if os(macOS)
@@ -154,12 +144,12 @@ public class RenderView : UIView
 	{
 		return self.layer
 	}
-	/*
-	*/
 	
 	init(contentRenderer:ContentRenderer)
 	{
 		self.contentRenderer = contentRenderer
+
+		self.metalLayer = CAMetalLayer()
 
 		super.init(frame: .zero)
 		// Make this a layer-hosting view. First set the layer, then set wantsLayer to true.
@@ -167,13 +157,14 @@ public class RenderView : UIView
 #if os(macOS)
 		wantsLayer = true
 		//self.needsLayout = true
+#endif
+
 		//	macos only
-		self.layer = CAMetalLayer()
-#else
-		self.metalLayer = CAMetalLayer()
+		//self.layer = CAMetalLayer()
+
+		self.metalLayer.frame = self.bounds
 		//	if using sublayer
 		viewLayer!.addSublayer(metalLayer)
-#endif
 		vsync = VSyncer(Callback: Render)
 	}
 	
@@ -182,15 +173,27 @@ public class RenderView : UIView
 	public override func layout()
 	{
 		super.layout()
+		OnLayoutChanged()
 		OnContentsChanged()
 	}
 #else
 	public override func layoutSubviews()
 	{
 		super.layoutSubviews()
+		OnLayoutChanged()
 		OnContentsChanged()
 	}
 #endif
+	
+	func OnLayoutChanged()
+	{
+		//	resize sublayer to fit our layer
+		//	the change of a sublayer's frame is animation, so disable them in the change
+		CATransaction.begin()
+		CATransaction.setDisableActions(true)
+		self.metalLayer.frame = self.bounds
+		CATransaction.commit()
+	}
 	
 	func OnContentsChanged()
 	{
