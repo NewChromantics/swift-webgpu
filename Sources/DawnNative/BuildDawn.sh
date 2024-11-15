@@ -15,4 +15,5 @@ ls ./src/dawn/native/libwebgpu_dawn.dylib
 ls -r ./gen
 
 # ios
-cmake -DBUILD_SHARED_LIBS=1 -DCMAKE_SYSTEM_NAME=iOS ../..
+cmake -DBUILD_SHARED_LIBS=0 -DCMAKE_SYSTEM_NAME=iOS ../..
+make -j 10 webgpu_dawn
