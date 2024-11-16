@@ -6,7 +6,7 @@ let package = Package(
     name: "swift-webgpu",
     platforms: [
 		.iOS(.v13),
-		.macOS("10.15")
+		.macOS(.v10_15)
 	],
     products: [
         .library(

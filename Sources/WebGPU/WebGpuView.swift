@@ -13,15 +13,16 @@ public typealias UIViewRepresentable = NSViewRepresentable
 #endif
 
 
-struct RenderError: LocalizedError
+//	public just so user can use it
+public struct RenderError: LocalizedError
 {
 	let description: String
 	
-	init(_ description: String) {
+	public init(_ description: String) {
 		self.description = description
 	}
 	
-	var errorDescription: String? {
+	public var errorDescription: String? {
 		description
 	}
 }
@@ -44,7 +45,7 @@ public class WebGpuRenderer
 	var windowTextureFormat = TextureFormat.bgra8Unorm
 
 	var initTask : Task<Device,any Error>!
-	var error : String?
+	var deferredRenderError : String?
 	
 	public init()
 	{
@@ -59,16 +60,9 @@ public class WebGpuRenderer
 		return try await initTask.result.get()
 	}
 	
-	//	todo: do something with this error!
-	func OnError(_ error:String)
-	{
-		print("CameraPreviewManager error; \(error)")
-		self.error = error
-	}
-	
 	func OnDeviceUncapturedError(errorType:ErrorType,errorMessage:String)
 	{
-		OnError("\(errorType)/\(errorMessage)")
+		deferredRenderError = "\(errorType)/\(errorMessage)"
 	}
 	
 	func Init() async throws -> Device
@@ -85,6 +79,8 @@ public class WebGpuRenderer
 	
 	public func Render(metalLayer:CAMetalLayer,getCommands:(Device,CommandEncoder,Texture)throws->()) throws
 	{
+		deferredRenderError = nil
+		
 		guard let device else
 		{
 			throw RenderError("Waiting for device")
@@ -113,6 +109,11 @@ public class WebGpuRenderer
 		device.queue.submit(commands: [commandBuffer])
 		
 		surface.present()
+		
+		if let deferredRenderError
+		{
+			throw RenderError(deferredRenderError)
+		}
 	}
 }
 
