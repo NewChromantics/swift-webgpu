@@ -45,7 +45,8 @@ public class WebGpuRenderer
 	var windowTextureFormat = TextureFormat.bgra8Unorm
 
 	var initTask : Task<Device,any Error>!
-	var deferredRenderError : String?
+	var deferredRenderErrors : [String] = []
+	public var hasDefferredErrors : Bool {	!deferredRenderErrors.isEmpty	}	//	todo: make a better interface for this mid-render
 	
 	public init()
 	{
@@ -62,7 +63,10 @@ public class WebGpuRenderer
 	
 	func OnDeviceUncapturedError(errorType:ErrorType,errorMessage:String)
 	{
-		deferredRenderError = "\(errorType)/\(errorMessage)"
+		//let error = "\(errorType)/\(errorMessage)"
+		let error = errorMessage
+		print(error)
+		deferredRenderErrors.append(error)
 	}
 	
 	func Init() async throws -> Device
@@ -79,7 +83,7 @@ public class WebGpuRenderer
 	
 	public func Render(metalLayer:CAMetalLayer,getCommands:(Device,CommandEncoder,Texture)throws->()) throws
 	{
-		deferredRenderError = nil
+		deferredRenderErrors = []
 		
 		guard let device else
 		{
@@ -100,19 +104,32 @@ public class WebGpuRenderer
 		
 		let encoder = device.createCommandEncoder()
 		
-		
-		//	let caller provide render commands
-		try getCommands(device,encoder,surfaceTexture)
-		
+		//	we want this to just throw, but if there's also errors at this point - we want them too
+		do
+		{
+			//	let caller provide render commands
+			try getCommands(device,encoder,surfaceTexture)
+		}
+		catch let error
+		{
+			var fullError = error.localizedDescription
+			if !deferredRenderErrors.isEmpty
+			{
+				fullError += "\n"
+				fullError += deferredRenderErrors.joined(separator: "\n")
+			}
+			throw RenderError(fullError)
+		}
 		
 		let commandBuffer = encoder.finish()
 		device.queue.submit(commands: [commandBuffer])
 		
 		surface.present()
 		
-		if let deferredRenderError
+		if !deferredRenderErrors.isEmpty
 		{
-			throw RenderError(deferredRenderError)
+			let allErrors = deferredRenderErrors.joined(separator: "\n")
+			throw RenderError(allErrors)
 		}
 	}
 }
