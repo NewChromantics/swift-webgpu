@@ -97,7 +97,9 @@ public class WebGpuRenderer
 		var surfaceDesc = SurfaceDescriptor()
 		surfaceDesc.nextInChain = FinalChainSurface
 		let surface = webgpu.createSurface(descriptor: surfaceDesc)
-		surface.configure(config: .init(device: device, format: windowTextureFormat, width: 800, height: 600))
+		let surfaceWidth = UInt32(metalLayer.frame.width)
+		let surfaceHeight = UInt32(metalLayer.frame.height)
+		surface.configure(config: .init(device: device, format: windowTextureFormat, width: surfaceWidth, height: surfaceHeight))
 		
 		let surfaceTexture = try surface.getCurrentTexture().texture
 		let surfaceView = surfaceTexture.createView()
