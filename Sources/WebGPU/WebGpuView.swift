@@ -170,6 +170,19 @@ public class RenderView : UIView
 		self.contentRenderer = contentRenderer
 
 		self.metalLayer = CAMetalLayer()
+		
+		//	toggle developer hud at runtime - clear key to hide
+		//	gr: this isnt working...
+		/*
+		if #available(macOS 13.0, *)
+		{
+			self.metalLayer.developerHUDProperties =
+			[
+				"mode":"default",
+				//"logging": "default"
+			]
+		}
+		 */
 
 		super.init(frame: .zero)
 		// Make this a layer-hosting view. First set the layer, then set wantsLayer to true.
@@ -180,12 +193,16 @@ public class RenderView : UIView
 #endif
 
 		//	macos only
-		//self.layer = CAMetalLayer()
+		//	using this, does not effect direct vs composited
+		//self.layer = self.metalLayer
 
 		self.metalLayer.frame = self.bounds
 		//	if using sublayer
-		viewLayer!.addSublayer(metalLayer)
-		vsync = VSyncer(Callback: Render)
+		if self.layer != metalLayer
+		{
+			viewLayer!.addSublayer(metalLayer)
+		}
+		vsync = VSyncer(parentView: self, Callback: Render)
 	}
 	
 	
@@ -207,12 +224,16 @@ public class RenderView : UIView
 	
 	func OnLayoutChanged()
 	{
-		//	resize sublayer to fit our layer
-		//	the change of a sublayer's frame is animation, so disable them in the change
-		CATransaction.begin()
-		CATransaction.setDisableActions(true)
-		self.metalLayer.frame = self.bounds
-		CATransaction.commit()
+		//	gr: the transaction shows up very high on profiler
+		if self.metalLayer.frame != self.bounds
+		{
+			//	resize sublayer to fit our layer
+			//	the change of a sublayer's frame is animation, so disable them in the change
+			CATransaction.begin()
+			CATransaction.setDisableActions(true)
+			self.metalLayer.frame = self.bounds
+			CATransaction.commit()
+		}
 	}
 	
 	func OnContentsChanged()
@@ -282,24 +303,48 @@ class VSyncer
 	public var Callback : ()->Void
 	
 	
-	init(Callback:@escaping ()->Void)
+	init(parentView:UIView,Callback:@escaping ()->Void)
 	{
 		self.Callback = Callback
 		
-		//	macos 14.0 has CADisplayLink but no way to use it
+		if !initDisplayLink(parentView: parentView)
+		{
+			initTimer()
+		}
+	}
+
+	func initDisplayLink(parentView:UIView) -> Bool
+	{
 #if os(macOS)
+		if #available(macOS 14.0, *)
+		{
+			let displayLink = parentView.displayLink(target: self, selector: #selector(OnVsync))
+			displayLink.add(to: .current, forMode: .default)
+			return true
+		}
+#endif
+		
+#if os(iOS)
+		if #available(iOS 3.1, *)
+		{
+			let displayLink = CADisplayLink(target: self, selector: #selector(OnVsync))
+			displayLink.add(to: .current, forMode: .default)
+			return true
+		}
+#endif
+		return false
+	}
+	
+	func initTimer()
+	{
 		let timer = Timer.scheduledTimer(timeInterval: 1.0/60.0, target: self, selector: #selector(OnVsync), userInfo: nil, repeats: true)
 		
 		//	despite how this looks, this runs the timer on a background thread.
 		//	this means when the main thread is blocked (eg, dragging a slider, or scrolling a view)
 		//	the timer is still fired, and thus (for example) a metal view still gets rendered [gr: although... is it on another thread?]
 		//	https://stackoverflow.com/a/57455910/355753
+		//	gr: this does not effect metal hud flicker, nor composite vs direct mode
 		RunLoop.main.add(timer, forMode: RunLoop.Mode.common)
-
-#else
-		let displayLink = CADisplayLink(target: self, selector: #selector(OnVsync))
-		displayLink.add(to: .current, forMode: .default)
-#endif
 	}
 	
 	@objc func OnVsync()
