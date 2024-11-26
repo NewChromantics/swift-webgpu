@@ -366,13 +366,14 @@ public class WebGpuViewStats : ObservableObject
 */
 public struct WebGpuView : View
 {
+	public var label : String? = nil
 	@State public var showFpsCounter = true
 	@State public var stats = WebGpuViewStats()
 	var fpsCounter : FrameCounter!
 	
 	public var contentRenderer : ContentRenderer
 	
-	public init(contentRenderer: ContentRenderer)
+	public init(contentRenderer: ContentRenderer,label:String?=nil)
 	{
 		self.contentRenderer = contentRenderer
 		self.label = label
@@ -407,10 +408,10 @@ public struct WebGpuView : View
 			
 			VStack(alignment:.leading,spacing: 0)
 			{
-				Text("\(fps) fps")
-					.fontWeight(.bold)
+				if label != nil
+				{
 					Tag(text:label!)
-				//.monospaced()	//	macos13
+				}
 				if showFpsCounter
 				{
 					let fps = String(format: "%.2f", stats.averageFps)
