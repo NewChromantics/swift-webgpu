@@ -273,6 +273,37 @@ public class RenderView : UIView
 }
 
 
+/*
+ Just a small decorative [tag] view
+ */
+public struct Tag : View
+{
+	var text : String
+	
+	var Colour = SwiftUI.Color(NSColor.black.withAlphaComponent(0.4))
+	var FontColour = SwiftUI.Color(NSColor.white.withAlphaComponent(0.8))
+	var FontSize = CGFloat(10)
+	var CornerRadius : CGFloat { FontSize / 2 }
+	var Margin : CGFloat { 5 }
+	var Padding : CGFloat { FontSize / 2 }
+	
+	public var body : some View
+	{
+		ZStack(alignment: .topLeading)
+		{
+			Text(text)
+				.fontWeight(.bold)
+				.padding(Padding)
+			//.monospaced()	//	macos13
+				.font(.system(size:FontSize))
+				.background(Colour)	//	macos 12
+				.foregroundColor(FontColour)	//	deprecated
+				.clipShape(RoundedRectangle(cornerRadius: CornerRadius))
+				.padding([.top, .leading], Margin)
+		}
+	}
+}
+
 class FrameCounter
 {
 	var counter : Int = 0
@@ -326,7 +357,7 @@ class FrameCounter
 
 public class WebGpuViewStats : ObservableObject
 {
-	@Published public var averageFps : CGFloat = 123
+	@Published public var averageFps : CGFloat = 0
 }
 
 /*
@@ -344,7 +375,7 @@ public struct WebGpuView : View
 	public init(contentRenderer: ContentRenderer)
 	{
 		self.contentRenderer = contentRenderer
-		//self.stats = Stats()
+		self.label = label
 		self.fpsCounter = FrameCounter(OnLap: self.OnFpsLap)
 	}
 	
@@ -367,32 +398,25 @@ public struct WebGpuView : View
 	{
 		fpsCounter.Add()
 	}
-	
-	static let tagAlpha = CGFloat(0.4)
-	let tagColour = SwiftUI.Color(NSColor.black.withAlphaComponent(tagAlpha))
-	let tagFontColour = SwiftUI.Color(NSColor.white.withAlphaComponent(tagAlpha*2))
-	let tagFontSize = CGFloat(10)
-	var tagCornerRadius : CGFloat { tagFontSize / 2 }
-	var tagMargin : CGFloat { 5 }
-	var tagPadding : CGFloat { tagFontSize / 2 }
 
 	public var body : some View
 	{
 		ZStack(alignment: .topLeading)
 		{
 			WebGpuViewDirect(onPreRender:OnPreRender, onPostRender: OnPostRender, contentRenderer:contentRenderer)
-			if showFpsCounter
+			
+			VStack(alignment:.leading,spacing: 0)
 			{
-				let fps = String(format: "%.2f", stats.averageFps)
 				Text("\(fps) fps")
 					.fontWeight(.bold)
-					.padding(tagPadding)
+					Tag(text:label!)
 				//.monospaced()	//	macos13
-					.font(.system(size:tagFontSize))
-					.background(tagColour)	//	macos 12
-					.foregroundColor(tagFontColour)	//	deprecated
-					.clipShape(RoundedRectangle(cornerRadius: tagCornerRadius))
-					.padding(tagMargin)
+				if showFpsCounter
+				{
+					let fps = String(format: "%.2f", stats.averageFps)
+					Tag(text:"\(fps) fps")
+				}
+				Spacer()
 			}
 		}
 	}
