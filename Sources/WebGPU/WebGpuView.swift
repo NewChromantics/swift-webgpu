@@ -145,8 +145,16 @@ public class RenderView : UIView
 	//	gr: don't seem to need this
 	//override var wantsUpdateLayer: Bool { return true	}
 	var contentRenderer : ContentRenderer
+	var onPreRender : ()->Void
+	var onPostRender : ()->Void
 	var vsync : VSyncer? = nil
 	
+	//	dawn is not thread safe, we need to be extremely sure that we don't
+	//	try and use the device (render) across multiple threads, so using a
+	//	very simple lock to stop multiple threads/tasks rendering at once.
+	//	The CADisplayLink and timer "vsync"s should be reusing the same thread...
+	let renderLock = NSLock()
+
 	var metalLayer : CAMetalLayer
 
 	
@@ -165,9 +173,11 @@ public class RenderView : UIView
 		return self.layer
 	}
 	
-	init(contentRenderer:ContentRenderer)
+	init(contentRenderer:ContentRenderer,OnPreRender:@escaping()->Void,OnPostRender:@escaping()->Void)
 	{
 		self.contentRenderer = contentRenderer
+		self.onPreRender = OnPreRender
+		self.onPostRender = OnPostRender
 
 		self.metalLayer = CAMetalLayer()
 		
@@ -236,12 +246,21 @@ public class RenderView : UIView
 		}
 	}
 	
+	
 	func OnContentsChanged()
 	{
 		let contentRect = self.bounds
 		
+		if !renderLock.try()
+		{
+			print("dropping frame")
+			return
+		}
 		//	render
+		onPreRender()
 		contentRenderer.Render(contentRect: contentRect, layer:metalLayer)
+		onPostRender()
+		renderLock.unlock()
 	}
 	
 	//	gr: why did I need @objc...
@@ -253,11 +272,140 @@ public class RenderView : UIView
 	
 }
 
-/*
-	Actual View for swiftui
-*/
-public struct WebGpuView : UIViewRepresentable
+
+class FrameCounter
 {
+	var counter : Int = 0
+	var lapFrequency : TimeInterval = 1	//	TimeInterval = seconds
+	var lastLapTime : Date? = nil
+	var onLap : (CGFloat)->Void
+	var timeSinceLap : TimeInterval?
+	{
+		if let lastLapTime
+		{
+			return Date().timeIntervalSince(lastLapTime)
+		}
+		return nil
+	}
+
+	init(OnLap:@escaping(CGFloat)->Void)
+	{
+		self.onLap = OnLap
+	}
+	
+	func Add(increment:Int=1)
+	{
+		counter += increment
+		//	check if it's time to lap
+		if let timeSinceLap
+		{
+			if timeSinceLap > lapFrequency
+			{
+				Lap(timeSinceLap:timeSinceLap)
+			}
+		}
+		else // first call
+		{
+			lastLapTime = Date()
+		}
+	}
+	
+	func Lap(timeSinceLap:TimeInterval)
+	{
+		//	report
+		var duration = max(0.0001,timeSinceLap)	//	shouldn't be zero, but being safe
+		var countPerSec = CGFloat(counter) / duration	//	ideally this is count/1
+		
+		//	reset (we do this before resetting date in case the callback is super long
+		lastLapTime = Date()
+		counter = 0
+		
+		onLap(countPerSec)
+	}
+}
+
+public class WebGpuViewStats : ObservableObject
+{
+	@Published public var averageFps : CGFloat = 123
+}
+
+/*
+	fancy view on top of WebGpuViewDirect so we can add native features, debug tools, like FPS counters
+	with the use of swiftui
+*/
+public struct WebGpuView : View
+{
+	@State public var stats = WebGpuViewStats()
+	var fpsCounter : FrameCounter!
+	
+	public var contentRenderer : ContentRenderer
+	
+	public init(contentRenderer: ContentRenderer)
+	{
+		self.contentRenderer = contentRenderer
+		//self.stats = Stats()
+		self.fpsCounter = FrameCounter(OnLap: self.OnFpsLap)
+	}
+	
+	func OnFpsLap(framesPerSecond:CGFloat)
+	{
+		//	update swiftui state only on main thread
+		DispatchQueue.main.async
+		{
+			self.stats.averageFps = framesPerSecond
+			//print("new fps \(framesPerSecond) - \(self.stats.averageFps)")
+		}
+	}
+	
+	func OnPreRender()
+	{
+		//	todo: we can use PreRender & PostRender to measure CPU expense of render
+	}
+	
+	func OnPostRender()
+	{
+		fpsCounter.Add()
+	}
+	
+	static let tagAlpha = CGFloat(0.4)
+	let tagColour = SwiftUI.Color(NSColor.black.withAlphaComponent(tagAlpha))
+	let tagFontColour = SwiftUI.Color(NSColor.white.withAlphaComponent(tagAlpha*2))
+	let tagFontSize = CGFloat(10)
+	var tagCornerRadius : CGFloat { tagFontSize / 2 }
+	var tagMargin : CGFloat { 5 }
+	var tagPadding : CGFloat { tagFontSize / 2 }
+
+	public var body : some View
+	{
+		ZStack(alignment: .topLeading)
+		{
+			WebGpuViewDirect(onPreRender:OnPreRender, onPostRender: OnPostRender, contentRenderer:contentRenderer)
+			let fps = String(format: "%.2f", stats.averageFps)
+			Text("\(fps) fps")
+				.fontWeight(.bold)
+				.padding(tagPadding)
+				//.monospaced()	//	macos13
+				.font(.system(size:tagFontSize))
+				.background(tagColour)	//	macos 12
+				.foregroundColor(tagFontColour)	//	deprecated
+				.clipShape(RoundedRectangle(cornerRadius: tagCornerRadius))
+				.padding(tagMargin)
+			
+		}
+	}
+}
+
+
+/*
+	Minimal View that can be used directly in swiftui as
+		WebGpuViewDirect(contentRenderer:contentRenderer)
+*/
+public struct WebGpuViewDirect : UIViewRepresentable
+{
+	//@Binding var fps : CGFloat	//	we can use binding variables here
+	var onPreRender : ()->Void = {}
+	var onPostRender : ()->Void = {}
+	
 	public typealias UIViewType = RenderView
 	public typealias NSViewType = RenderView
 	
@@ -265,21 +413,16 @@ public struct WebGpuView : UIViewRepresentable
 	
 	var renderView : RenderView?
 	
-	public init(contentRenderer:ContentRenderer)
-	{
-		self.contentRenderer = contentRenderer
-		//contentLayer.contentsGravity = .resizeAspect
-	}
-	
+
 	public func makeUIView(context: Context) -> RenderView
 	{
-		let view = RenderView(contentRenderer: contentRenderer)
+		let view = RenderView(contentRenderer: contentRenderer,OnPreRender: onPreRender,OnPostRender: onPostRender)
 		return view
 	}
 	
 	public func makeNSView(context: Context) -> RenderView
 	{
-		let view = RenderView(contentRenderer: contentRenderer)
+		let view = RenderView(contentRenderer: contentRenderer,OnPreRender: onPreRender,OnPostRender: onPostRender)
 		return view
 	}
 	
