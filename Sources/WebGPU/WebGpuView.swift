@@ -335,6 +335,7 @@ public class WebGpuViewStats : ObservableObject
 */
 public struct WebGpuView : View
 {
+	@State public var showFpsCounter = true
 	@State public var stats = WebGpuViewStats()
 	var fpsCounter : FrameCounter!
 	
@@ -380,17 +381,19 @@ public struct WebGpuView : View
 		ZStack(alignment: .topLeading)
 		{
 			WebGpuViewDirect(onPreRender:OnPreRender, onPostRender: OnPostRender, contentRenderer:contentRenderer)
-			let fps = String(format: "%.2f", stats.averageFps)
-			Text("\(fps) fps")
-				.fontWeight(.bold)
-				.padding(tagPadding)
+			if showFpsCounter
+			{
+				let fps = String(format: "%.2f", stats.averageFps)
+				Text("\(fps) fps")
+					.fontWeight(.bold)
+					.padding(tagPadding)
 				//.monospaced()	//	macos13
-				.font(.system(size:tagFontSize))
-				.background(tagColour)	//	macos 12
-				.foregroundColor(tagFontColour)	//	deprecated
-				.clipShape(RoundedRectangle(cornerRadius: tagCornerRadius))
-				.padding(tagMargin)
-			
+					.font(.system(size:tagFontSize))
+					.background(tagColour)	//	macos 12
+					.foregroundColor(tagFontColour)	//	deprecated
+					.clipShape(RoundedRectangle(cornerRadius: tagCornerRadius))
+					.padding(tagMargin)
+			}
 		}
 	}
 }
