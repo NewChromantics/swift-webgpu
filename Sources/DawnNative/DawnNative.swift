@@ -1,4 +1,5 @@
 import WebGPU
+/*
 import CDawnNative
 
 public var procs: UnsafePointer<DawnProcTable> {
@@ -80,3 +81,4 @@ public class Adapter {
         return Device(handle: device)
     }
 }
+*/
